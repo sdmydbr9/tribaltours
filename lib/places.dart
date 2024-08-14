@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'edit.dart';
 
 class PlacesPage extends StatefulWidget {
@@ -33,23 +32,6 @@ class _PlacesPageState extends State<PlacesPage> {
             .set({'state': state});
       }
     }
-  }
-
-  Future<List<String>> _getSuggestions(String query) async {
-    if (selectedState == null || query.isEmpty) {
-      return [];
-    }
-
-    final snapshot = await FirebaseFirestore.instance
-        .collection('destinations')
-        .doc(selectedState)
-        .collection('destinations')
-        .get();
-
-    return snapshot.docs
-        .map((doc) => doc['name'] as String)
-        .where((name) => name.toLowerCase().contains(query.toLowerCase()))
-        .toList();
   }
 
   Future<bool> _destinationExists(String destinationName) async {
@@ -135,49 +117,22 @@ class _PlacesPageState extends State<PlacesPage> {
                   ),
                   Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: CupertinoTypeAheadField<String>(
-                      hideOnEmpty: true,
-                      suggestionsCallback: (pattern) async {
-                        return await _getSuggestions(pattern);
-                      },
-                      itemBuilder: (context, suggestion) {
-                        return CupertinoListTile(
-                          title: Text(suggestion),
-                        );
-                      },
-                      onSelected: (suggestion) {
-                        attractionController.text = suggestion;
-                        _destinationExists(suggestion).then((exists) {
+                    child: CupertinoTextField(
+                      controller: attractionController,
+                      placeholder: 'Enter Destination Name',
+                      style: TextStyle(color: textColor),
+                      onChanged: (text) async {
+                        if (selectedState != null && text.isNotEmpty) {
+                          final exists = await _destinationExists(text);
                           setState(() {
                             isButtonDisabled = exists;
                           });
-                        });
+                        } else {
+                          setState(() {
+                            isButtonDisabled = true;
+                          });
+                        }
                       },
-                      builder: (context, controller, focusNode) {
-                        return CupertinoTextField(
-                          controller: controller,
-                          focusNode: focusNode,
-                          autofocus: true,
-                          style: TextStyle(color: textColor),
-                          placeholder: 'Enter Destination Name',
-                        );
-                      },
-                      decorationBuilder: (context, child) => DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: CupertinoTheme.of(context)
-                              .barBackgroundColor
-                              .withOpacity(1),
-                          border: Border.all(
-                            color: CupertinoDynamicColor.resolve(
-                              CupertinoColors.systemGrey4,
-                              context,
-                            ),
-                            width: 1,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: child,
-                      ),
                     ),
                   ),
                   CupertinoButton(
