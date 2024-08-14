@@ -23,10 +23,34 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return CupertinoApp(
       title: 'Travel Booking Admin',
-      theme: CupertinoThemeData(
-        primaryColor: CupertinoColors.systemBlue,
-      ),
+      theme: _getCupertinoTheme(context),
       home: HomePage(),
+    );
+  }
+
+  CupertinoThemeData _getCupertinoTheme(BuildContext context) {
+    final brightness = MediaQuery.of(context).platformBrightness;
+    return CupertinoThemeData(
+      brightness: brightness,
+      primaryColor: CupertinoColors.systemBlue,
+      scaffoldBackgroundColor: brightness == Brightness.dark
+          ? CupertinoColors.black
+          : CupertinoColors.white,
+      textTheme: CupertinoTextThemeData(
+        textStyle: TextStyle(
+          color: brightness == Brightness.dark
+              ? CupertinoColors.white
+              : CupertinoColors.black,
+        ),
+        navTitleTextStyle: TextStyle(
+          color: brightness == Brightness.dark
+              ? CupertinoColors.white
+              : CupertinoColors.black,
+          fontSize: 20.0,
+          fontWeight: FontWeight.bold,
+        ),
+        actionTextStyle: TextStyle(color: CupertinoColors.systemBlue),
+      ),
     );
   }
 }
@@ -36,12 +60,18 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: Text('Admin Dashboard'),
+        middle: Text(
+          'Admin Dashboard',
+          style: CupertinoTheme.of(context).textTheme.navTitleTextStyle,
+        ),
       ),
       child: SafeArea(
         child: Center(
           child: CupertinoButton(
-            child: Text('Manage Places'),
+            child: Text(
+              'Manage Places',
+              style: CupertinoTheme.of(context).textTheme.textStyle,
+            ),
             color: CupertinoColors.activeBlue,
             onPressed: () {
               Navigator.push(
