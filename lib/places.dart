@@ -72,17 +72,26 @@ class _PlacesPageState extends State<PlacesPage> {
       context: context,
       builder: (BuildContext context) => CupertinoActionSheet(
         title: Text('Select State'),
-        actions: states.map((state) {
-          return CupertinoActionSheetAction(
-            onPressed: () {
-              setState(() {
-                selectedState = state;
-              });
-              Navigator.pop(context);
-            },
-            child: Text(state),
-          );
-        }).toList(),
+        actions: [
+          Container(
+            height: 200.0, // Adjust height as needed
+            child: CupertinoScrollbar(
+              child: ListView(
+                children: states.map((state) {
+                  return CupertinoActionSheetAction(
+                    onPressed: () {
+                      setState(() {
+                        selectedState = state;
+                      });
+                      Navigator.pop(context);
+                    },
+                    child: Text(state),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () {
             Navigator.pop(context);
@@ -91,6 +100,45 @@ class _PlacesPageState extends State<PlacesPage> {
         ),
       ),
     );
+  }
+
+  void _confirmDelete(BuildContext context, String destinationName, String id) {
+    showCupertinoDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: Text("Delete Destination"),
+          content:
+              Text("Are you sure you want to delete \"$destinationName\"?"),
+          actions: [
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              child: Text("Cancel"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              child: Text("Delete"),
+              onPressed: () {
+                deleteDestination(id);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void deleteDestination(String id) {
+    FirebaseFirestore.instance
+        .collection('destinations')
+        .doc(selectedState)
+        .collection('destinations')
+        .doc(id)
+        .delete();
   }
 
   @override
@@ -237,16 +285,22 @@ class _PlacesPageState extends State<PlacesPage> {
                               }
 
                               var destinations = snapshot.data!.docs
-                                  .map((doc) => formatName(doc['name']))
+                                  .map((doc) => {
+                                        'name': formatName(doc['name']),
+                                        'id': doc.id
+                                      })
                                   .toList();
 
-                              destinations.sort((a, b) =>
-                                  a.toLowerCase().compareTo(b.toLowerCase()));
+                              destinations.sort((a, b) => a['name']!
+                                  .toLowerCase()
+                                  .compareTo(b['name']!.toLowerCase()));
 
                               return ListView.builder(
                                 itemCount: destinations.length,
                                 itemBuilder: (context, index) {
-                                  String formattedName = destinations[index];
+                                  String formattedName =
+                                      destinations[index]['name']!;
+                                  String docId = destinations[index]['id']!;
 
                                   return GestureDetector(
                                     onTap: () {
@@ -280,19 +334,26 @@ class _PlacesPageState extends State<PlacesPage> {
                                                     color: CupertinoColors
                                                         .activeBlue),
                                                 onPressed: () {
+                                                  String docId = destinations[
+                                                          index][
+                                                      'id']!; // Retrieve the correct document ID
+                                                  print(
+                                                      "Editing ID: $docId"); // Debugging line
+
                                                   Navigator.push(
                                                     context,
                                                     CupertinoPageRoute(
                                                       builder: (context) =>
                                                           EditDestinationPage(
                                                         state: selectedState!,
-                                                        destinationId: snapshot
-                                                            .data!
-                                                            .docs[index]
-                                                            .id,
+                                                        destinationId:
+                                                            docId, // Pass the correct document ID
                                                         currentData: snapshot
-                                                                .data!
-                                                                .docs[index]
+                                                                .data!.docs
+                                                                .firstWhere(
+                                                                    (doc) =>
+                                                                        doc.id ==
+                                                                        docId)
                                                                 .data()
                                                             as Map<String,
                                                                 dynamic>,
@@ -308,8 +369,8 @@ class _PlacesPageState extends State<PlacesPage> {
                                                     color: CupertinoColors
                                                         .destructiveRed),
                                                 onPressed: () {
-                                                  deleteDestination(snapshot
-                                                      .data!.docs[index].id);
+                                                  _confirmDelete(context,
+                                                      formattedName, docId);
                                                 },
                                               ),
                                             ],
@@ -332,70 +393,70 @@ class _PlacesPageState extends State<PlacesPage> {
     );
   }
 
-  double _calculateTextSize(String text, double maxWidth) {
-    final TextPainter textPainter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(fontSize: 22.0), // Start with a large font size
-      ),
-      maxLines: 1,
-      textDirection: TextDirection.ltr,
-    )..layout(minWidth: 0, maxWidth: maxWidth);
-
-    if (textPainter.didExceedMaxLines) {
-      return maxWidth / text.length * 1.6; // Adjusting factor
-    }
-
-    return 22.0; // Default font size
-  }
-
   String formatName(String name) {
     return name
         .split(' ')
-        .map((word) => word.isNotEmpty
-            ? '${word[0].toUpperCase()}${word.substring(1)}'
-            : '')
+        .map((word) => word[0].toUpperCase() + word.substring(1))
         .join(' ');
   }
 
   void saveDestination() async {
-    if (selectedState != null && attractionController.text.isNotEmpty) {
-      final exists = await _destinationExists(attractionController.text);
-      if (!exists) {
-        FirebaseFirestore.instance
-            .collection('destinations')
-            .doc(selectedState)
-            .collection('destinations')
-            .add({
-          'name': attractionController.text,
-        });
-        print(
-            "Destination saved: ${attractionController.text} in state $selectedState");
-        attractionController.clear();
-        setState(() {
-          isButtonDisabled = true;
-          isAddingDestination = false;
-        });
-      } else {
-        print("Destination already exists");
-      }
-    } else {
-      print("State not selected or destination name is empty");
-    }
-  }
+    final destinationName = attractionController.text.trim().toLowerCase();
+    if (destinationName.isEmpty || selectedState == null) return;
 
-  void deleteDestination(String id) {
+    if (await _destinationExists(destinationName)) {
+      _showDestinationExistsDialog();
+      return;
+    }
+
+    final destinationData = {
+      'name': destinationName,
+      'info': '',
+      'location': '',
+      'best_time': '',
+    };
+
     FirebaseFirestore.instance
         .collection('destinations')
         .doc(selectedState)
         .collection('destinations')
-        .doc(id)
-        .delete();
+        .add(destinationData);
+
+    attractionController.clear();
+    setState(() {
+      isButtonDisabled = true;
+    });
+  }
+
+  void _showDestinationExistsDialog() {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text('Destination Exists'),
+        content: Text(
+            'The destination already exists in the selected state collection.'),
+        actions: [
+          CupertinoDialogAction(
+            child: Text('OK'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  double _calculateTextSize(String text, double maxWidth) {
+    final textSpan = TextSpan(text: text, style: TextStyle(fontSize: 24.0));
+    final textPainter =
+        TextPainter(text: textSpan, textDirection: TextDirection.ltr);
+    textPainter.layout(maxWidth: maxWidth);
+    return textPainter.size.width > maxWidth ? 20.0 : 24.0;
   }
 }
 
-// Northeast India Data
-List<String> states = [
+const states = [
   'Arunachal Pradesh',
   'Assam',
   'Manipur',
@@ -403,5 +464,5 @@ List<String> states = [
   'Mizoram',
   'Nagaland',
   'Sikkim',
-  'Tripura',
+  'Tripura'
 ];
