@@ -23,6 +23,18 @@ class _EditDestinationPageState extends State<EditDestinationPage> {
   TextEditingController bestTimeController = TextEditingController();
   TextEditingController knownForController = TextEditingController();
   TextEditingController recommendedDaysController = TextEditingController();
+  List<TextEditingController> imageControllers = [
+    TextEditingController(),
+    TextEditingController(),
+    TextEditingController(),
+    TextEditingController(),
+  ]; // To store URLs
+  List<bool> isUrlFieldVisible = [
+    true,
+    true,
+    true,
+    true
+  ]; // Control URL field visibility
 
   @override
   void initState() {
@@ -33,9 +45,25 @@ class _EditDestinationPageState extends State<EditDestinationPage> {
     knownForController.text = widget.currentData['known_for'] ?? '';
     recommendedDaysController.text =
         widget.currentData['recommended_days'] ?? '';
+
+    // Populate the image URLs into the controllers if they exist
+    List<dynamic>? images = widget.currentData['images'];
+    if (images != null) {
+      for (int i = 0; i < images.length && i < 4; i++) {
+        imageControllers[i].text = images[i] ?? '';
+        isUrlFieldVisible[i] = false; // Hide the URL field if an image exists
+      }
+    }
+
+    print("Initialized EditDestinationPage with ID: ${widget.destinationId}");
   }
 
   void saveChanges() {
+    List<String> imageUrls = imageControllers
+        .map((controller) => controller.text)
+        .where((url) => url.isNotEmpty)
+        .toList();
+
     FirebaseFirestore.instance
         .collection('destinations')
         .doc(widget.state)
@@ -47,9 +75,56 @@ class _EditDestinationPageState extends State<EditDestinationPage> {
       'best_time': bestTimeController.text,
       'known_for': knownForController.text,
       'recommended_days': recommendedDaysController.text,
+      'images': imageUrls,
     }).then((_) {
+      print(
+          "Changes saved successfully for destination ID: ${widget.destinationId}");
       Navigator.pop(context);
+    }).catchError((error, stackTrace) {
+      print("Error saving changes: $error");
+      print("Stack trace: $stackTrace");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save changes: $error')),
+      );
     });
+  }
+
+  void showUrlPopup(int index) {
+    TextEditingController urlController = imageControllers[index];
+
+    showCupertinoDialog(
+      context: context,
+      builder: (context) {
+        return CupertinoAlertDialog(
+          title: Text('Edit Image URL'),
+          content: Column(
+            children: [
+              CupertinoTextField(
+                controller: urlController,
+                placeholder: 'Enter Image URL',
+              ),
+            ],
+          ),
+          actions: [
+            CupertinoDialogAction(
+              child: Text('Save'),
+              onPressed: () {
+                setState(() {
+                  isUrlFieldVisible[index] = urlController.text.isEmpty;
+                });
+                Navigator.pop(context);
+              },
+            ),
+            CupertinoDialogAction(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -97,6 +172,48 @@ class _EditDestinationPageState extends State<EditDestinationPage> {
                       placeholder: 'Recommended Number of Days',
                       keyboardType: TextInputType.number,
                     ),
+                    SizedBox(height: 16.0),
+                    ...List.generate(4, (index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (isUrlFieldVisible[index])
+                              CupertinoTextField(
+                                controller: imageControllers[index],
+                                placeholder: 'Image URL ${index + 1}',
+                                onSubmitted: (value) {
+                                  setState(() {
+                                    if (value.isNotEmpty) {
+                                      isUrlFieldVisible[index] = false;
+                                    }
+                                  });
+                                },
+                              ),
+                            if (!isUrlFieldVisible[index] &&
+                                imageControllers[index].text.isNotEmpty)
+                              GestureDetector(
+                                onTap: () {
+                                  showUrlPopup(index);
+                                },
+                                child: Image.network(
+                                  imageControllers[index].text,
+                                  width: 100,
+                                  height: 100,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Icon(
+                                      CupertinoIcons.photo,
+                                      color: CupertinoColors.systemGrey,
+                                      size: 100,
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    }),
                   ],
                 ),
               ),
