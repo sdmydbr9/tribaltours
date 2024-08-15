@@ -13,6 +13,7 @@ class _PlacesPageState extends State<PlacesPage> {
   String? selectedState;
   TextEditingController attractionController = TextEditingController();
   bool isButtonDisabled = true;
+  bool isAddingDestination = false;
 
   @override
   void initState() {
@@ -100,14 +101,28 @@ class _PlacesPageState extends State<PlacesPage> {
         : CupertinoColors.black;
 
     return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(
+          'Manage Places - Northeast India',
+          style: TextStyle(color: textColor),
+        ),
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: Icon(
+            isAddingDestination ? CupertinoIcons.minus : CupertinoIcons.add,
+            color: isAddingDestination
+                ? CupertinoColors.destructiveRed
+                : CupertinoColors.activeGreen,
+          ),
+          onPressed: () {
+            setState(() {
+              isAddingDestination = !isAddingDestination;
+            });
+          },
+        ),
+      ),
       child: CustomScrollView(
         slivers: [
-          CupertinoSliverNavigationBar(
-            largeTitle: Text(
-              'Manage Places - Northeast India',
-              style: TextStyle(color: textColor),
-            ),
-          ),
           SliverFillRemaining(
             child: SafeArea(
               child: Column(
@@ -137,54 +152,56 @@ class _PlacesPageState extends State<PlacesPage> {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: CupertinoTypeAheadField<String>(
-                      textFieldConfiguration: CupertinoTextFieldConfiguration(
-                        controller: attractionController,
-                        placeholder: 'Enter Destination Name',
-                        style: TextStyle(color: textColor),
-                        onChanged: (text) async {
-                          final suggestions = await _getSuggestions(text);
+                  if (isAddingDestination) ...[
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: CupertinoTypeAheadField<String>(
+                        textFieldConfiguration: CupertinoTextFieldConfiguration(
+                          controller: attractionController,
+                          placeholder: 'Enter Destination Name',
+                          style: TextStyle(color: textColor),
+                          onChanged: (text) async {
+                            final suggestions = await _getSuggestions(text);
+                            setState(() {
+                              isButtonDisabled =
+                                  suggestions.isEmpty && text.isNotEmpty
+                                      ? false
+                                      : suggestions.isNotEmpty;
+                            });
+                          },
+                        ),
+                        suggestionsCallback: _getSuggestions,
+                        itemBuilder: (context, suggestion) {
+                          return Container(
+                            color: Colors.transparent,
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(suggestion,
+                                style: TextStyle(color: textColor)),
+                          );
+                        },
+                        onSuggestionSelected: (suggestion) {
+                          attractionController.text = suggestion;
                           setState(() {
-                            isButtonDisabled =
-                                suggestions.isEmpty && text.isNotEmpty
-                                    ? false
-                                    : suggestions.isNotEmpty;
+                            isButtonDisabled = true;
                           });
                         },
+                        noItemsFoundBuilder: (context) {
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text('No suggestions found.',
+                                style: TextStyle(color: textColor)),
+                          );
+                        },
                       ),
-                      suggestionsCallback: _getSuggestions,
-                      itemBuilder: (context, suggestion) {
-                        return Container(
-                          color: Colors.transparent,
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(suggestion,
-                              style: TextStyle(color: textColor)),
-                        );
-                      },
-                      onSuggestionSelected: (suggestion) {
-                        attractionController.text = suggestion;
-                        setState(() {
-                          isButtonDisabled = true;
-                        });
-                      },
-                      noItemsFoundBuilder: (context) {
-                        return Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('No suggestions found.',
-                              style: TextStyle(color: textColor)),
-                        );
-                      },
                     ),
-                  ),
-                  CupertinoButton(
-                    child: Text('Save Destination'),
-                    color: isButtonDisabled
-                        ? CupertinoColors.inactiveGray
-                        : CupertinoColors.activeGreen,
-                    onPressed: isButtonDisabled ? null : saveDestination,
-                  ),
+                    CupertinoButton(
+                      child: Text('Save Destination'),
+                      color: isButtonDisabled
+                          ? CupertinoColors.inactiveGray
+                          : CupertinoColors.activeGreen,
+                      onPressed: isButtonDisabled ? null : saveDestination,
+                    ),
+                  ],
                   Expanded(
                     child: selectedState == null
                         ? Center(
@@ -327,6 +344,7 @@ class _PlacesPageState extends State<PlacesPage> {
         attractionController.clear();
         setState(() {
           isButtonDisabled = true;
+          isAddingDestination = false;
         });
       } else {
         print("Destination already exists");
