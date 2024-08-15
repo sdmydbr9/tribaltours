@@ -101,28 +101,41 @@ class _PlacesPageState extends State<PlacesPage> {
         : CupertinoColors.black;
 
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        middle: Text(
-          'Manage Places - Northeast India',
-          style: TextStyle(color: textColor),
-        ),
-        trailing: CupertinoButton(
-          padding: EdgeInsets.zero,
-          child: Icon(
-            isAddingDestination ? CupertinoIcons.minus : CupertinoIcons.add,
-            color: isAddingDestination
-                ? CupertinoColors.destructiveRed
-                : CupertinoColors.activeGreen,
-          ),
-          onPressed: () {
-            setState(() {
-              isAddingDestination = !isAddingDestination;
-            });
-          },
-        ),
-      ),
       child: CustomScrollView(
         slivers: [
+          CupertinoSliverNavigationBar(
+            largeTitle: LayoutBuilder(
+              builder: (context, constraints) {
+                final title = selectedState != null
+                    ? 'Manage Places - $selectedState'
+                    : 'Manage Places - Northeast India';
+
+                final textStyle = TextStyle(
+                  fontSize: _calculateTextSize(title, constraints.maxWidth),
+                  color: textColor,
+                );
+
+                return Text(
+                  title,
+                  style: textStyle,
+                );
+              },
+            ),
+            trailing: CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: Icon(
+                isAddingDestination ? CupertinoIcons.minus : CupertinoIcons.add,
+                color: isAddingDestination
+                    ? CupertinoColors.destructiveRed
+                    : CupertinoColors.activeGreen,
+              ),
+              onPressed: () {
+                setState(() {
+                  isAddingDestination = !isAddingDestination;
+                });
+              },
+            ),
+          ),
           SliverFillRemaining(
             child: SafeArea(
               child: Column(
@@ -317,6 +330,23 @@ class _PlacesPageState extends State<PlacesPage> {
         ],
       ),
     );
+  }
+
+  double _calculateTextSize(String text, double maxWidth) {
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(fontSize: 22.0), // Start with a large font size
+      ),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    )..layout(minWidth: 0, maxWidth: maxWidth);
+
+    if (textPainter.didExceedMaxLines) {
+      return maxWidth / text.length * 1.6; // Adjusting factor
+    }
+
+    return 22.0; // Default font size
   }
 
   String formatName(String name) {
