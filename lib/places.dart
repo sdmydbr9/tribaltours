@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'edit.dart';
 
 class PlacesPage extends StatefulWidget {
@@ -43,6 +44,26 @@ class _PlacesPageState extends State<PlacesPage> {
         .get();
 
     return snapshot.docs.isNotEmpty;
+  }
+
+  Future<List<String>> _getSuggestions(String query) async {
+    if (selectedState == null || query.length < 3) {
+      return [];
+    }
+
+    String lowercaseQuery = query.toLowerCase();
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('destinations')
+        .doc(selectedState)
+        .collection('destinations')
+        .where('name', isGreaterThanOrEqualTo: lowercaseQuery)
+        .where('name', isLessThan: lowercaseQuery + 'z')
+        .get();
+
+    return snapshot.docs
+        .map((doc) => (doc['name'] as String).toLowerCase())
+        .toList();
   }
 
   void _showStateSelector(BuildContext context) {
@@ -98,7 +119,8 @@ class _PlacesPageState extends State<PlacesPage> {
                       child: Container(
                         padding: EdgeInsets.symmetric(vertical: 12.0),
                         decoration: BoxDecoration(
-                          border: Border.all(color: CupertinoColors.inactiveGray),
+                          border:
+                              Border.all(color: CupertinoColors.inactiveGray),
                           borderRadius: BorderRadius.circular(8.0),
                         ),
                         child: Center(
@@ -117,21 +139,42 @@ class _PlacesPageState extends State<PlacesPage> {
                   ),
                   Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: CupertinoTextField(
-                      controller: attractionController,
-                      placeholder: 'Enter Destination Name',
-                      style: TextStyle(color: textColor),
-                      onChanged: (text) async {
-                        if (selectedState != null && text.isNotEmpty) {
-                          final exists = await _destinationExists(text);
+                    child: CupertinoTypeAheadField<String>(
+                      textFieldConfiguration: CupertinoTextFieldConfiguration(
+                        controller: attractionController,
+                        placeholder: 'Enter Destination Name',
+                        style: TextStyle(color: textColor),
+                        onChanged: (text) async {
+                          final suggestions = await _getSuggestions(text);
                           setState(() {
-                            isButtonDisabled = exists;
+                            isButtonDisabled =
+                                suggestions.isEmpty && text.isNotEmpty
+                                    ? false
+                                    : suggestions.isNotEmpty;
                           });
-                        } else {
-                          setState(() {
-                            isButtonDisabled = true;
-                          });
-                        }
+                        },
+                      ),
+                      suggestionsCallback: _getSuggestions,
+                      itemBuilder: (context, suggestion) {
+                        return Container(
+                          color: Colors.transparent,
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(suggestion,
+                              style: TextStyle(color: textColor)),
+                        );
+                      },
+                      onSuggestionSelected: (suggestion) {
+                        attractionController.text = suggestion;
+                        setState(() {
+                          isButtonDisabled = true;
+                        });
+                      },
+                      noItemsFoundBuilder: (context) {
+                        return Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text('No suggestions found.',
+                              style: TextStyle(color: textColor)),
+                        );
                       },
                     ),
                   ),
@@ -156,17 +199,25 @@ class _PlacesPageState extends State<PlacesPage> {
                                 .doc(selectedState)
                                 .collection('destinations')
                                 .snapshots(),
-                            builder:
-                                (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                            builder: (context,
+                                AsyncSnapshot<QuerySnapshot> snapshot) {
                               if (!snapshot.hasData) {
                                 return Center(
                                     child: CupertinoActivityIndicator());
                               }
-                              var destinations = snapshot.data!.docs;
+
+                              var destinations = snapshot.data!.docs
+                                  .map((doc) => formatName(doc['name']))
+                                  .toList();
+
+                              destinations.sort((a, b) =>
+                                  a.toLowerCase().compareTo(b.toLowerCase()));
+
                               return ListView.builder(
                                 itemCount: destinations.length,
                                 itemBuilder: (context, index) {
-                                  var destination = destinations[index];
+                                  String formattedName = destinations[index];
+
                                   return GestureDetector(
                                     onTap: () {
                                       // Handle tap if necessary
@@ -184,10 +235,12 @@ class _PlacesPageState extends State<PlacesPage> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(destination['name'],
-                                              style: TextStyle(
-                                                  fontSize: 18.0,
-                                                  color: textColor)),
+                                          Text(
+                                            '${index + 1}. $formattedName',
+                                            style: TextStyle(
+                                                fontSize: 18.0,
+                                                color: textColor),
+                                          ),
                                           Row(
                                             children: [
                                               CupertinoButton(
@@ -203,10 +256,16 @@ class _PlacesPageState extends State<PlacesPage> {
                                                       builder: (context) =>
                                                           EditDestinationPage(
                                                         state: selectedState!,
-                                                        destinationId:
-                                                            destination.id,
-                                                        currentData:
-                                                            destination.data() as Map<String, dynamic>,
+                                                        destinationId: snapshot
+                                                            .data!
+                                                            .docs[index]
+                                                            .id,
+                                                        currentData: snapshot
+                                                                .data!
+                                                                .docs[index]
+                                                                .data()
+                                                            as Map<String,
+                                                                dynamic>,
                                                       ),
                                                     ),
                                                   );
@@ -219,8 +278,8 @@ class _PlacesPageState extends State<PlacesPage> {
                                                     color: CupertinoColors
                                                         .destructiveRed),
                                                 onPressed: () {
-                                                  deleteDestination(
-                                                      destination.id);
+                                                  deleteDestination(snapshot
+                                                      .data!.docs[index].id);
                                                 },
                                               ),
                                             ],
@@ -241,6 +300,15 @@ class _PlacesPageState extends State<PlacesPage> {
         ],
       ),
     );
+  }
+
+  String formatName(String name) {
+    return name
+        .split(' ')
+        .map((word) => word.isNotEmpty
+            ? '${word[0].toUpperCase()}${word.substring(1)}'
+            : '')
+        .join(' ');
   }
 
   void saveDestination() async {
