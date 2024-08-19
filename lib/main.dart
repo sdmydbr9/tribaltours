@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'login.dart'; // Import your login screen
 import 'places.dart';
+import 'home.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +26,7 @@ class MyApp extends StatelessWidget {
     return CupertinoApp(
       title: 'Travel Booking Admin',
       theme: _getCupertinoTheme(context),
-      home: HomePage(),
+      home: LoginScreen(), // Set LoginScreen as the home page
     );
   }
 
@@ -50,37 +52,6 @@ class MyApp extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
         actionTextStyle: TextStyle(color: CupertinoColors.systemBlue),
-      ),
-    );
-  }
-}
-
-class HomePage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        middle: Text(
-          'Admin Dashboard',
-          style: CupertinoTheme.of(context).textTheme.navTitleTextStyle,
-        ),
-      ),
-      child: SafeArea(
-        child: Center(
-          child: CupertinoButton(
-            child: Text(
-              'Manage Places',
-              style: CupertinoTheme.of(context).textTheme.textStyle,
-            ),
-            color: CupertinoColors.activeBlue,
-            onPressed: () {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(builder: (context) => PlacesPage()),
-              );
-            },
-          ),
-        ),
       ),
     );
   }

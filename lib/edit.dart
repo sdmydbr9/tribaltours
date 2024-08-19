@@ -29,12 +29,6 @@ class _EditDestinationPageState extends State<EditDestinationPage> {
     TextEditingController(),
     TextEditingController(),
   ]; // To store URLs
-  List<bool> isUrlFieldVisible = [
-    true,
-    true,
-    true,
-    true
-  ]; // Control URL field visibility
 
   @override
   void initState() {
@@ -51,7 +45,6 @@ class _EditDestinationPageState extends State<EditDestinationPage> {
     if (images != null) {
       for (int i = 0; i < images.length && i < 4; i++) {
         imageControllers[i].text = images[i] ?? '';
-        isUrlFieldVisible[i] = false; // Hide the URL field if an image exists
       }
     }
 
@@ -110,7 +103,7 @@ class _EditDestinationPageState extends State<EditDestinationPage> {
               child: Text('Save'),
               onPressed: () {
                 setState(() {
-                  isUrlFieldVisible[index] = urlController.text.isEmpty;
+                  // Updates the image URL in the controller
                 });
                 Navigator.pop(context);
               },
@@ -125,6 +118,30 @@ class _EditDestinationPageState extends State<EditDestinationPage> {
         );
       },
     );
+  }
+
+  void addImageUrl() {
+    if (imageControllers.length < 10) {
+      setState(() {
+        imageControllers.add(TextEditingController());
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('You can only add up to 10 images.')),
+      );
+    }
+  }
+
+  void removeImageUrl(int index) {
+    if (imageControllers.length > 1) {
+      setState(() {
+        imageControllers.removeAt(index);
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('At least one image is required.')),
+      );
+    }
   }
 
   @override
@@ -173,47 +190,69 @@ class _EditDestinationPageState extends State<EditDestinationPage> {
                       keyboardType: TextInputType.number,
                     ),
                     SizedBox(height: 16.0),
-                    ...List.generate(4, (index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (isUrlFieldVisible[index])
-                              CupertinoTextField(
-                                controller: imageControllers[index],
-                                placeholder: 'Image URL ${index + 1}',
-                                onSubmitted: (value) {
-                                  setState(() {
-                                    if (value.isNotEmpty) {
-                                      isUrlFieldVisible[index] = false;
-                                    }
-                                  });
-                                },
-                              ),
-                            if (!isUrlFieldVisible[index] &&
-                                imageControllers[index].text.isNotEmpty)
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        ...List.generate(imageControllers.length, (index) {
+                          return Stack(
+                            children: [
                               GestureDetector(
-                                onTap: () {
-                                  showUrlPopup(index);
-                                },
-                                child: Image.network(
-                                  imageControllers[index].text,
+                                onTap: () => showUrlPopup(index),
+                                child: Container(
                                   width: 100,
                                   height: 100,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Icon(
-                                      CupertinoIcons.photo,
-                                      color: CupertinoColors.systemGrey,
-                                      size: 100,
-                                    );
-                                  },
+                                  color: CupertinoColors.systemGrey5,
+                                  child: imageControllers[index].text.isEmpty
+                                      ? Icon(
+                                          CupertinoIcons.photo,
+                                          color: CupertinoColors.systemGrey,
+                                          size: 100,
+                                        )
+                                      : Image.network(
+                                          imageControllers[index].text,
+                                          width: 100,
+                                          height: 100,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return Icon(
+                                              CupertinoIcons.photo,
+                                              color: CupertinoColors.systemGrey,
+                                              size: 100,
+                                            );
+                                          },
+                                        ),
                                 ),
                               ),
-                          ],
-                        ),
-                      );
-                    }),
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: IconButton(
+                                  icon: Icon(CupertinoIcons.minus_circle),
+                                  onPressed: () => removeImageUrl(index),
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                        if (imageControllers.length < 10)
+                          GestureDetector(
+                            onTap: addImageUrl,
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              color: CupertinoColors.systemGrey5,
+                              child: Center(
+                                child: Icon(
+                                  CupertinoIcons.add,
+                                  color: CupertinoColors.systemGrey,
+                                  size: 50,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),
