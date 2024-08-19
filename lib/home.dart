@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'places.dart';
 import 'itinerary.dart';
+import 'viewitinerary.dart';
 
 class HomePage extends StatelessWidget {
   @override
@@ -42,6 +43,21 @@ class HomePage extends StatelessWidget {
                   Navigator.push(
                     context,
                     CupertinoPageRoute(builder: (context) => ItineraryPage()),
+                  );
+                },
+              ),
+              SizedBox(height: 20),
+              CupertinoButton(
+                child: Text(
+                  'view Itineraries',
+                  style: CupertinoTheme.of(context).textTheme.textStyle,
+                ),
+                color: CupertinoColors.activeBlue,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    CupertinoPageRoute(
+                        builder: (context) => ViewItineraryPage()),
                   );
                 },
               ),

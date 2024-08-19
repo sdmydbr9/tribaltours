@@ -1,15 +1,18 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ItineraryPage extends StatefulWidget {
+class EditItineraryPage extends StatefulWidget {
+  final String state;
+  final DocumentSnapshot itinerary;
+
+  EditItineraryPage({required this.state, required this.itinerary});
+
   @override
-  _ItineraryPageState createState() => _ItineraryPageState();
+  _EditItineraryPageState createState() => _EditItineraryPageState();
 }
 
-class _ItineraryPageState extends State<ItineraryPage> {
+class _EditItineraryPageState extends State<EditItineraryPage> {
   final TextEditingController _titleController = TextEditingController();
-  List<String?> _selectedStates = [null];
   List<Map<String, List<TextEditingController>>> _days = [];
   final Set<String> _selectedDestinations = {};
   List<String> _states = [];
@@ -18,6 +21,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
   void initState() {
     super.initState();
     _fetchStates();
+    _loadItineraryData();
   }
 
   Future<void> _fetchStates() async {
@@ -26,6 +30,26 @@ class _ItineraryPageState extends State<ItineraryPage> {
     setState(() {
       _states = snapshot.docs.map((doc) => doc.id).toList();
     });
+  }
+
+  void _loadItineraryData() {
+    _titleController.text = widget.itinerary['title'];
+    final List<dynamic> days = widget.itinerary['days'];
+
+    for (var day in days) {
+      final dayDetailsController = TextEditingController(text: day['details']);
+      final List<TextEditingController> destinationControllers = [];
+
+      for (var destination in day['destinations']) {
+        destinationControllers.add(TextEditingController(text: destination));
+        _selectedDestinations.add(destination);
+      }
+
+      _days.add({
+        'details': [dayDetailsController],
+        'destinations': destinationControllers,
+      });
+    }
   }
 
   void _addDay() {
@@ -49,23 +73,21 @@ class _ItineraryPageState extends State<ItineraryPage> {
   }
 
   Future<List<String>> _getDestinations() async {
-    if (_selectedStates.isEmpty) {
+    if (_states.isEmpty) {
       return [];
     }
 
     List<String> destinations = [];
 
-    for (var state in _selectedStates.whereType<String>()) {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('destinations')
-          .doc(state)
-          .collection('destinations')
-          .get();
+    final snapshot = await FirebaseFirestore.instance
+        .collection('destinations')
+        .doc(widget.state)
+        .collection('destinations')
+        .get();
 
-      destinations.addAll(snapshot.docs
-          .map((doc) => (doc['name'] as String).toLowerCase())
-          .where((name) => !_selectedDestinations.contains(name)));
-    }
+    destinations.addAll(snapshot.docs
+        .map((doc) => (doc['name'] as String).toLowerCase())
+        .where((name) => !_selectedDestinations.contains(name)));
 
     return destinations;
   }
@@ -115,95 +137,44 @@ class _ItineraryPageState extends State<ItineraryPage> {
     });
   }
 
-  void _selectState(int index) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (BuildContext context) {
-        return CupertinoActionSheet(
-          title: Text('Select State'),
-          actions: _states
-              .where((state) => !_selectedStates.contains(state))
-              .map((String state) {
-            return CupertinoActionSheetAction(
-              child: Text(state),
-              onPressed: () {
-                setState(() {
-                  _selectedStates[index] = state;
-                  _selectedDestinations.clear();
-                  for (var day in _days) {
-                    for (var controller in day['destinations']!) {
-                      controller.clear();
-                    }
-                  }
-                });
-                Navigator.pop(context);
-              },
-            );
-          }).toList(),
-          cancelButton: CupertinoActionSheetAction(
-            child: Text('Cancel'),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  void _addState() {
-    setState(() {
-      _selectedStates.add(null);
-    });
-  }
-
-  void _removeState(int index) {
-    setState(() {
-      _selectedStates.removeAt(index);
-      _selectedDestinations.clear();
-      for (var day in _days) {
-        for (var controller in day['destinations']!) {
-          controller.clear();
-        }
-      }
-    });
-  }
-
   void _submitItinerary() async {
-    if (_selectedStates.isNotEmpty && _titleController.text.isNotEmpty) {
+    if (_titleController.text.isNotEmpty) {
       final title = _titleController.text;
 
-      // Iterate over each selected state
-      for (var state in _selectedStates.whereType<String>()) {
-        final itineraryRef = FirebaseFirestore.instance
-            .collection('destinations')
-            .doc(state)
-            .collection('itineraries')
-            .doc(); // Generate a new document ID
+      final itineraryRef = FirebaseFirestore.instance
+          .collection('destinations')
+          .doc(widget.state)
+          .collection('itineraries')
+          .doc(widget.itinerary.id);
 
-        // Prepare the data for each day
-        List<Map<String, dynamic>> daysData = [];
-        for (var i = 0; i < _days.length; i++) {
-          final day = _days[i];
-          daysData.add({
-            'day': i + 1,
-            'details': day['details']![0].text,
-            'destinations': day['destinations']!
-                .map((controller) => controller.text)
-                .toList(),
-          });
-        }
-
-        // Prepare the itinerary data
-        final itineraryData = {
-          'title': title,
-          'days': daysData,
-          'createdAt': Timestamp.now(),
-        };
-
-        // Add the itinerary data to Firestore
-        await itineraryRef.set(itineraryData);
+      // Prepare the data for each day
+      List<Map<String, dynamic>> daysData = [];
+      for (var i = 0; i < _days.length; i++) {
+        final day = _days[i];
+        daysData.add({
+          'day': i + 1,
+          'details': day['details']![0].text,
+          'destinations': day['destinations']!
+              .map((controller) => controller.text)
+              .toList(),
+        });
       }
+
+      // Prepare the itinerary data
+      final itineraryData = {
+        'title': title,
+        'days': daysData,
+        'createdAt': widget.itinerary['createdAt'],
+      };
+
+      // Log the data being saved
+      print('Saving itinerary: $itineraryData');
+
+      // Update the itinerary data in Firestore
+      await itineraryRef.set(itineraryData);
+
+      // Log success
+      print('Itinerary updated successfully in Firestore.');
 
       // Show success alert
       showCupertinoDialog(
@@ -211,28 +182,21 @@ class _ItineraryPageState extends State<ItineraryPage> {
         builder: (context) {
           return CupertinoAlertDialog(
             title: Text('Success'),
-            content: Text('Itinerary submitted successfully.'),
+            content: Text('Itinerary updated successfully.'),
             actions: [
               CupertinoDialogAction(
                 child: Text('OK'),
                 onPressed: () {
-                  Navigator.pop(context);
+                  Navigator.pop(context); // Dismiss the dialog
+                  Navigator.pop(context); // Go back to the previous screen
                 },
               ),
             ],
           );
         },
       );
-
-      // Clear the form
-      _titleController.clear();
-      _selectedStates = [null];
-      _days.clear();
-      _selectedDestinations.clear();
-
-      setState(() {}); // Refresh the UI
     } else {
-      print('Please select at least one state and enter a title.');
+      print('Please enter a title.');
     }
   }
 
@@ -240,11 +204,11 @@ class _ItineraryPageState extends State<ItineraryPage> {
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: Text('Manage Itinerary'),
+        middle: Text('Edit Itinerary'),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _submitItinerary,
-          child: Text('Submit'),
+          child: Text('Save'),
         ),
       ),
       child: SafeArea(
@@ -256,37 +220,6 @@ class _ItineraryPageState extends State<ItineraryPage> {
                 CupertinoTextField(
                   controller: _titleController,
                   placeholder: 'Title',
-                ),
-                SizedBox(height: 16),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: _selectedStates.length,
-                  itemBuilder: (context, index) {
-                    return Row(
-                      children: [
-                        Expanded(
-                          child: CupertinoTextField(
-                            placeholder: _selectedStates[index] == null
-                                ? 'Select State'
-                                : _selectedStates[index],
-                            readOnly: true,
-                            onTap: () => _selectState(index),
-                          ),
-                        ),
-                        if (index > 0)
-                          CupertinoButton(
-                            child: Icon(CupertinoIcons.minus_circle),
-                            onPressed: () => _removeState(index),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-                SizedBox(height: 16),
-                CupertinoButton(
-                  child: Text('Select Another State'),
-                  onPressed: _addState,
                 ),
                 SizedBox(height: 16),
                 ListView.builder(
@@ -320,8 +253,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                                         _selectDestination(dayIndex, destIndex),
                                   ),
                                 ),
-                                if (destIndex >
-                                    0) // Only show the remove button after the first destination
+                                if (destIndex > 0)
                                   CupertinoButton(
                                     child: Icon(CupertinoIcons.minus_circle),
                                     onPressed: () =>
