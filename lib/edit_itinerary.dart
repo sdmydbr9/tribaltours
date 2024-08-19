@@ -37,6 +37,7 @@ class _EditItineraryPageState extends State<EditItineraryPage> {
     final List<dynamic> days = widget.itinerary['days'];
 
     for (var day in days) {
+      final dayTitleController = TextEditingController(text: day['title']);
       final dayDetailsController = TextEditingController(text: day['details']);
       final List<TextEditingController> destinationControllers = [];
 
@@ -46,6 +47,7 @@ class _EditItineraryPageState extends State<EditItineraryPage> {
       }
 
       _days.add({
+        'title': [dayTitleController],
         'details': [dayDetailsController],
         'destinations': destinationControllers,
       });
@@ -55,6 +57,7 @@ class _EditItineraryPageState extends State<EditItineraryPage> {
   void _addDay() {
     setState(() {
       _days.add({
+        'title': [TextEditingController()],
         'details': [TextEditingController()],
         'destinations': [TextEditingController()],
       });
@@ -153,6 +156,7 @@ class _EditItineraryPageState extends State<EditItineraryPage> {
         final day = _days[i];
         daysData.add({
           'day': i + 1,
+          'title': day['title']![0].text, // Include the title of the day
           'details': day['details']![0].text,
           'destinations': day['destinations']!
               .map((controller) => controller.text)
@@ -231,6 +235,12 @@ class _EditItineraryPageState extends State<EditItineraryPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Day ${dayIndex + 1}'),
+                        CupertinoTextField(
+                          controller: _days[dayIndex]['title']![0],
+                          placeholder:
+                              'Day Title', // Add placeholder for day title
+                        ),
+                        SizedBox(height: 8),
                         CupertinoTextField(
                           controller: _days[dayIndex]['details']![0],
                           placeholder: 'Details',

@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'edit_itinerary.dart';
 
 class ViewItineraryPage extends StatefulWidget {
@@ -140,40 +140,59 @@ class _ViewItineraryPageState extends State<ViewItineraryPage> {
                     )
                   : _itineraries.isEmpty
                       ? Center(child: Text('No itineraries found.'))
-                      : ListView.builder(
-                          itemCount: _itineraries.length,
-                          itemBuilder: (context, index) {
-                            final itinerary = _itineraries[index];
-                            return Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: Column(
-                                children: [
-                                  CupertinoListTile(
-                                    title: Text(itinerary['title']),
-                                    subtitle: Text(
-                                        'Days: ${itinerary['days'].length} | Created: ${itinerary['createdAt'].toDate()}'),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        CupertinoButton(
-                                          child: Icon(CupertinoIcons.pencil),
-                                          onPressed: () =>
-                                              _editItinerary(itinerary),
-                                        ),
-                                        CupertinoButton(
-                                          child: Icon(CupertinoIcons.delete),
-                                          onPressed: () =>
-                                              _deleteItinerary(itinerary),
-                                        ),
-                                      ],
-                                    ),
+                      : CupertinoScrollbar(
+                          child: ListView.builder(
+                            itemCount: _itineraries.length,
+                            itemBuilder: (context, index) {
+                              final itinerary = _itineraries[index];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0, vertical: 8.0),
+                                child: CupertinoButton(
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () {},
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        itinerary['title'],
+                                        style: CupertinoTheme.of(context)
+                                            .textTheme
+                                            .navLargeTitleTextStyle,
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Days: ${itinerary['days'].length} | Created: ${itinerary['createdAt'].toDate()}',
+                                        style: CupertinoTheme.of(context)
+                                            .textTheme
+                                            .textStyle,
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          CupertinoButton(
+                                            padding: EdgeInsets.zero,
+                                            child: Icon(CupertinoIcons.pencil),
+                                            onPressed: () =>
+                                                _editItinerary(itinerary),
+                                          ),
+                                          CupertinoButton(
+                                            padding: EdgeInsets.zero,
+                                            child: Icon(CupertinoIcons.delete),
+                                            onPressed: () =>
+                                                _deleteItinerary(itinerary),
+                                          ),
+                                        ],
+                                      ),
+                                      Divider(),
+                                    ],
                                   ),
-                                  Divider(),
-                                ],
-                              ),
-                            );
-                          },
+                                ),
+                              );
+                            },
+                          ),
                         ),
             ),
           ],

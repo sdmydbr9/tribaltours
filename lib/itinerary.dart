@@ -31,6 +31,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
   void _addDay() {
     setState(() {
       _days.add({
+        'title': [TextEditingController()], // Add controller for title
         'details': [TextEditingController()],
         'destinations': [TextEditingController()],
       });
@@ -187,6 +188,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
           final day = _days[i];
           daysData.add({
             'day': i + 1,
+            'title': day['title']![0].text, // Include the title of the day
             'details': day['details']![0].text,
             'destinations': day['destinations']!
                 .map((controller) => controller.text)
@@ -297,10 +299,27 @@ class _ItineraryPageState extends State<ItineraryPage> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Day ${dayIndex + 1}'),
+                        Row(
+                          children: [
+                            Text('Day ${dayIndex + 1}'),
+                            SizedBox(width: 16),
+                            Expanded(
+                              child: CupertinoTextField(
+                                controller: _days[dayIndex]
+                                    ['title']![0], // Use the correct controller
+                                placeholder: 'Title',
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
                         CupertinoTextField(
                           controller: _days[dayIndex]['details']![0],
                           placeholder: 'Details',
+                          maxLines:
+                              6, // Allows for a larger input area for paragraphs
+                          minLines:
+                              3, // Sets the minimum number of visible lines
                         ),
                         SizedBox(height: 8),
                         ListView.builder(
@@ -320,8 +339,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                                         _selectDestination(dayIndex, destIndex),
                                   ),
                                 ),
-                                if (destIndex >
-                                    0) // Only show the remove button after the first destination
+                                if (destIndex > 0)
                                   CupertinoButton(
                                     child: Icon(CupertinoIcons.minus_circle),
                                     onPressed: () =>
