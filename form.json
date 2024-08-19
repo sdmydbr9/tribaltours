@@ -1,0 +1,39 @@
+"destination": {
+	"arunachal":{
+		"itineraries": {
+    			"bgQF1F9rtAynJjAbFmck": {
+      "state": "Arunachal Pradesh",
+      "title": "this is the title for Arunachal",
+      "createdAt": "August 19, 2024 at 8:02:52 PM UTC+5:30",
+      "days": [
+        {
+          "day": 1,
+          "destinations": [
+            "tawang."
+          ],
+          "details": "this is the detail",
+          "title": "this is day 1 title"
+        },
+        {
+          "day": 2,
+          "destinations": [
+            "dirang."
+          ],
+          "details": "this is another detail",
+          "title": "this is day 2 title"
+        }
+      ],
+      "query": {
+        "country": "India",
+        "email": "sdmydbr@gmail.com",
+        "name": "sudhamoy",
+        "numberOfPax": 2,
+        "phoneNumber": "9612690810",
+        "state": "Sikkim",
+        "submittedAt": "August 19, 2024 at 11:10:07 PM UTC+5:30",
+        "tentativeArrival": "August 24, 2024 at 12:00:00 AM UTC+5:30",
+        "tentativeDeparture": "August 28, 2024 at 12:00:00 AM UTC+5:30"
+      }
+    }
+  }
+}

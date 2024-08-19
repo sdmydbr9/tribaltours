@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'places.dart';
 import 'itinerary.dart';
 import 'viewitinerary.dart';
+import 'viewQuery.dart';
 
 class HomePage extends StatelessWidget {
   @override
@@ -49,7 +49,7 @@ class HomePage extends StatelessWidget {
               SizedBox(height: 20),
               CupertinoButton(
                 child: Text(
-                  'view Itineraries',
+                  'View Itineraries',
                   style: CupertinoTheme.of(context).textTheme.textStyle,
                 ),
                 color: CupertinoColors.activeBlue,
@@ -64,14 +64,30 @@ class HomePage extends StatelessWidget {
               SizedBox(height: 20),
               CupertinoButton(
                 child: Text(
+                  'View Queries',
+                  style: CupertinoTheme.of(context).textTheme.textStyle,
+                ),
+                color: CupertinoColors.activeBlue,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    CupertinoPageRoute(
+                        builder: (context) => ViewQueries(
+                              destinationState: '',
+                              itineraryId: '',
+                            )),
+                  );
+                },
+              ),
+              SizedBox(height: 20),
+              CupertinoButton(
+                child: Text(
                   'Logout',
                   style: CupertinoTheme.of(context).textTheme.textStyle,
                 ),
                 color: CupertinoColors.destructiveRed,
                 onPressed: () {
-                  // Logic to log out and navigate back to login screen
-                  Navigator.of(context).popUntil((route) =>
-                      route.isFirst); // Navigate back to the login screen
+                  Navigator.of(context).popUntil((route) => route.isFirst);
                 },
               ),
             ],
