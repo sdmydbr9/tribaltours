@@ -7,93 +7,52 @@ import 'viewQuery.dart';
 class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        middle: Text(
-          'Admin Dashboard',
-          style: CupertinoTheme.of(context).textTheme.navTitleTextStyle,
-        ),
-      ),
-      child: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CupertinoButton(
-                child: Text(
-                  'Manage Places',
-                  style: CupertinoTheme.of(context).textTheme.textStyle,
-                ),
-                color: CupertinoColors.activeBlue,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    CupertinoPageRoute(builder: (context) => PlacesPage()),
-                  );
-                },
-              ),
-              SizedBox(height: 20),
-              CupertinoButton(
-                child: Text(
-                  'Manage Itineraries',
-                  style: CupertinoTheme.of(context).textTheme.textStyle,
-                ),
-                color: CupertinoColors.activeBlue,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    CupertinoPageRoute(builder: (context) => ItineraryPage()),
-                  );
-                },
-              ),
-              SizedBox(height: 20),
-              CupertinoButton(
-                child: Text(
-                  'View Itineraries',
-                  style: CupertinoTheme.of(context).textTheme.textStyle,
-                ),
-                color: CupertinoColors.activeBlue,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    CupertinoPageRoute(
-                        builder: (context) => ViewItineraryPage()),
-                  );
-                },
-              ),
-              SizedBox(height: 20),
-              CupertinoButton(
-                child: Text(
-                  'View Queries',
-                  style: CupertinoTheme.of(context).textTheme.textStyle,
-                ),
-                color: CupertinoColors.activeBlue,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    CupertinoPageRoute(
-                        builder: (context) => ViewQueries(
-                              destinationState: '',
-                              itineraryId: '',
-                            )),
-                  );
-                },
-              ),
-              SizedBox(height: 20),
-              CupertinoButton(
-                child: Text(
-                  'Logout',
-                  style: CupertinoTheme.of(context).textTheme.textStyle,
-                ),
-                color: CupertinoColors.destructiveRed,
-                onPressed: () {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
-              ),
-            ],
+    return CupertinoTabScaffold(
+      tabBar: CupertinoTabBar(
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.location),
+            label: 'Manage Places',
           ),
-        ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.calendar),
+            label: 'Manage Itineraries',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.eye),
+            label: 'View Itineraries',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.mail),
+            label: 'View Queries',
+          ),
+        ],
       ),
+      tabBuilder: (context, index) {
+        Widget page;
+        switch (index) {
+          case 0:
+            page = PlacesPage();
+            break;
+          case 1:
+            page = ItineraryPage();
+            break;
+          case 2:
+            page = ViewItineraryPage();
+            break;
+          case 3:
+            page = ViewQueries(
+              destinationState: '',
+              itineraryId: '',
+            );
+            break;
+          default:
+            page = PlacesPage();
+        }
+        return CupertinoPageScaffold(
+          child: page,
+        );
+      },
     );
   }
 }
